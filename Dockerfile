@@ -7,6 +7,7 @@ WORKDIR /app
 # Définir les variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV PORT 8000
 
 # Installer les dépendances système
 RUN apt-get update && apt-get install -y \
@@ -24,9 +25,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copier le projet Django dans le conteneur
 COPY . .
 
-# Créer un utilisateur non-root pour la sécurité
-RUN useradd -m -u 1000 django
-USER django
+# Créer le dossier staticfiles
+RUN python manage.py collectstatic --noinput
 
 # Exposer le port 8000
 EXPOSE 8000
