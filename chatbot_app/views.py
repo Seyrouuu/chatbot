@@ -3,11 +3,24 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from transformers import pipeline
 
-# تهيئة النماذج عند بداية تشغيل السيرفر
-translator = pipeline("translation_en_to_ar", model="Helsinki-NLP/opus-mt-en-ar")
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+# Variables globales pour les modèles
+translator = None
+summarizer = None
+
+def get_translator():
+    global translator
+    if translator is None:
+        from transformers import pipeline
+        translator = pipeline("translation_en_to_ar", model="Helsinki-NLP/opus-mt-en-ar")
+    return translator
+
+def get_summarizer():
+    global summarizer
+    if summarizer is None:
+        from transformers import pipeline
+        summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    return summarizer
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatbotView(View):
@@ -32,17 +45,17 @@ class ChatbotView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
     def translate_text(self, text):
-        """ترجمة النص من الإنجليزية إلى العربية"""
         try:
-            translated = translator(text)[0]['translation_text']
-            return translated
+            model = get_translator()
+            result = model(text[:500])[0]['translation_text']  # Limiter la longueur
+            return result
         except Exception as e:
-            return f"Erreur traduction: {str(e)}"
+            return f"Translation error: {str(e)}"
 
     def summarize_text(self, text):
-        """تلخيص النص"""
         try:
-            summary = summarizer(text)[0]['summary_text']
-            return summary
+            model = get_summarizer()
+            result = model(text[:1000], max_length=150, min_length=30)[0]['summary_text']
+            return result
         except Exception as e:
-            return f"Erreur résumé: {str(e)}"
+            return f"Summarization error: {str(e)}"
